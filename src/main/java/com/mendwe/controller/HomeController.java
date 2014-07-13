@@ -12,8 +12,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 import org.apache.log4j.Logger;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -21,6 +19,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -30,6 +29,8 @@ import redis.clients.jedis.Pipeline;
 import com.mendwe.DAO.MendWeDAOStd;
 import com.mendwe.DAO.UserTest;
 import com.mendwe.model.Posts;
+import com.mendwe.service.MendWeServiceImpl;
+import com.mendwe.service.MendWeServiceStd;
 import com.mendwe.utility.JedisFactory;
 
 @Controller
@@ -40,6 +41,9 @@ public class HomeController {
 
 	@Autowired
 	private MendWeDAOStd mendWeDAOStd;
+	
+//	@Autowired
+	private MendWeServiceStd serviceStd=new MendWeServiceImpl();
 
 	@Autowired
 	public HomeController(UserTest test) {
@@ -73,11 +77,17 @@ public class HomeController {
 */		logger.debug("friend Set" + friendList);
 		String postId = jedis.get("POST_IDS");
 		int maxPostId = Integer.parseInt(postId);
+		
 		System.out.println("####################maximum postId is" + maxPostId);
-		for (Integer i = 1; i <= maxPostId; i++) {
+		for (Integer i = maxPostId; i >=1 ; i--) {
 			String postedByID = jedis.hget("POST_ALL:" + i, "postedby");
 			if ((friendList.contains(postedByID))
 					|| (username.equals(postedByID))) {
+				String StotalLikes="";
+				Set<String> likedBy=jedis.smembers("LIKE_POST:"+i);
+				int totalLikes=likedBy.size();
+				StotalLikes=StotalLikes+totalLikes;
+
 				String postText = jedis.hget("POST_ALL:" + i, "text");
 				String postDate = jedis.hget("POST_ALL:" + i, "posteddate");
 /*				postInfo = null;
@@ -88,7 +98,8 @@ public class HomeController {
 				  postInfoMap.put("username",postedByID); 
 				  postInfoMap.put("postdate","no Date");/*Date is to be send to proper format*/
 				  postInfoMap.put("postText",postText);
-				 
+				  postInfoMap.put("StotalLikes",StotalLikes);
+				  
 /*				postInfo = postedByID + "/" + postDate + "/" + postText;
 */				/*
 				 * jsonObject.put("postedBy",postedByID);
@@ -116,8 +127,13 @@ public class HomeController {
 				cLightsList.add(text);
 			}
 		}
-
+		
 		modelAndView.addObject("cLightsList", cLightsList);
+
+		/* Get News */
+		Map<String,String> newsMap=jedis.hgetAll("NEWS_ALL");
+		modelAndView.addObject("newsMap", newsMap);
+		
 		return modelAndView;
 	}
 
@@ -323,4 +339,49 @@ public class HomeController {
 		return new ModelAndView("search","userMap",userMap);
 	}
 
+	
+	@RequestMapping("/ajax")
+    public ModelAndView helloAjaxTest() {
+        return new ModelAndView("ajax", "message", "Crunchify Spring MVC with Ajax and JQuery Demo..");
+    }
+ 
+    @RequestMapping(value = "/ajaxtest", method = RequestMethod.GET)
+    public @ResponseBody
+    String getTime(@RequestParam(value = "postId") String postId,HttpServletRequest request) {
+ 
+    	System.out.println("######################Post Id is##################### "+postId);
+    	HttpSession session = request.getSession();
+		String postedBy = (String) session.getAttribute("username");
+
+		
+    	
+		Jedis jedis = JedisFactory.getInstance().getJedisPool().getResource();
+		Pipeline pipeline = jedis.pipelined();
+		String result="";
+		/*Set<String> totalkeys=jedis.keys("USER_ALL:*");
+        result=result+(totalkeys.size());*/
+		boolean hasLiked= jedis.sismember("LIKE_POST:"+postId, postedBy);
+		if(!hasLiked){
+		jedis.sadd("LIKE_POST:"+postId, postedBy);}
+		else{
+			jedis.srem("LIKE_POST:"+postId, postedBy);
+
+		}
+		Set<String> likedBy=jedis.smembers("LIKE_POST:"+postId);
+		int totalLikes=likedBy.size();
+		pipeline.sync();
+		result=result+totalLikes;
+		
+
+       logger.debug("Debug Message from CrunchifySpringAjaxJQuery Controller..");
+        return result;
+    }
+    
+//  For uploading File
+    @RequestMapping(value = "/fileUpload.html", method = RequestMethod.POST)
+	public String fileUpload() {
+    	serviceStd.uploadFile();
+//    return "ourprofile";
+    	return "redirect:home.html";
+    }
 }

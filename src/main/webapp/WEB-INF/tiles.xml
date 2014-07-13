@@ -44,5 +44,9 @@
 		<put-attribute name="body" value="/WEB-INF/view/search.jsp" />
 	</definition>
 	
+	<definition name="ajax" extends="base.definition">
+		<put-attribute name="body" value="/WEB-INF/view/ajax.jsp" />
+	</definition>
+	
 	
  </tiles-definitions>      

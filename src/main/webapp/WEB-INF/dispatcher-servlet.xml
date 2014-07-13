@@ -35,7 +35,8 @@
 	
 	<bean id="user" class="com.mendwe.DAO.UserTest" />
 	<bean id="daoimpl" class="com.mendwe.DAO.MendWeDAOImpl"/>
-
+<!-- 	<bean id="com.mendwe.service.MendWeServiceImpl"/> -->
+	
 	<mvc:interceptors>
 		<!-- this interceptor is called on every request -->
 		<bean class="com.mendwe.interceptor.UserAuthenticationInterceptor" />
