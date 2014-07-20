@@ -20,43 +20,38 @@
 <title>me n we</title>
 </head>
 <body>
-	<div class="wrapper">
-		<div class="container-fluid">
+	<!-- <div class="wrapper"> -->
 			<div class="row-fluid">
 
 				<tiles:insertAttribute name="header"></tiles:insertAttribute>
 
 			</div>
-		</div>
 		
-		<div class="container-fluid visible-desktop">
+		
 			<div class="row-fluid">
 				<tiles:insertAttribute name="firstmain"></tiles:insertAttribute>
 
 			</div>
-		</div>
 		
-		<div class="container-fluid">
+		
 			<div class="row-fluid">
 				<div class="bodyPart">
 
 					<tiles:insertAttribute name="body"></tiles:insertAttribute>
 				</div>
 			</div>
-		</div>
 		
-		<div class="container-fluid visible-desktop">
-			<div class="row-fluid">
+		
+		
+			<%-- <div class="row-fluid">
 				<div class="span12">
 					<div id="newpost" class="secondmain">
 
 						<tiles:insertAttribute name="hotornot"></tiles:insertAttribute>
 					</div>
 				</div>
-			</div>
-		</div>
-
-		<div class="container-fluid">
+			</div> --%>
+<%-- 
 			<div class="row-fluid">
 				<div class="span12">
 					<div class="nfooter">
@@ -64,10 +59,9 @@
 						<tiles:insertAttribute name="footer"></tiles:insertAttribute>
 					</div>
 				</div>
-			</div>
-		</div>
+		</div> --%>
 
-</div>
+<!-- </div> -->
 </body>
 </html>
 

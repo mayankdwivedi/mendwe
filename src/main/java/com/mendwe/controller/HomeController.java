@@ -1,5 +1,8 @@
 package com.mendwe.controller;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.commons.CommonsMultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -41,9 +46,9 @@ public class HomeController {
 
 	@Autowired
 	private MendWeDAOStd mendWeDAOStd;
-	
-//	@Autowired
-	private MendWeServiceStd serviceStd=new MendWeServiceImpl();
+
+	// @Autowired
+	private MendWeServiceStd serviceStd = new MendWeServiceImpl();
 
 	@Autowired
 	public HomeController(UserTest test) {
@@ -70,42 +75,52 @@ public class HomeController {
 		Jedis jedis = JedisFactory.getInstance().getJedisPool().getResource();
 		Set<String> friendList = jedis.smembers("FRIEND_SET:" + username);
 
-		Map<Integer, Map<String, String>> postMap = new HashMap<Integer,Map<String, String>>();
-		Map<String,String> postInfoMap;
+		Map<Integer, Map<String, String>> postMap = new HashMap<Integer, Map<String, String>>();
+		Map<String, String> postInfoMap;
+		String imagePath = "http://mayrit.herobo.com/posts/";
 
-/*		String postInfo;
-*/		logger.debug("friend Set" + friendList);
+		/*
+		 * String postInfo;
+		 */logger.debug("friend Set" + friendList);
 		String postId = jedis.get("POST_IDS");
 		int maxPostId = Integer.parseInt(postId);
-		
+
 		System.out.println("####################maximum postId is" + maxPostId);
-		for (Integer i = maxPostId; i >=1 ; i--) {
+		for (Integer i = maxPostId; i >= 1; i--) {
 			String postedByID = jedis.hget("POST_ALL:" + i, "postedby");
 			if ((friendList.contains(postedByID))
 					|| (username.equals(postedByID))) {
-				String StotalLikes="";
-				Set<String> likedBy=jedis.smembers("LIKE_POST:"+i);
-				int totalLikes=likedBy.size();
-				StotalLikes=StotalLikes+totalLikes;
+				String StotalLikes = "";
+				Set<String> likedBy = jedis.smembers("LIKE_POST:" + i);
+				int totalLikes = likedBy.size();
+				StotalLikes = StotalLikes + totalLikes;
 
 				String postText = jedis.hget("POST_ALL:" + i, "text");
-				String postDate = jedis.hget("POST_ALL:" + i, "posteddate");
-/*				postInfo = null;
-*/				System.out.println("postedBy" + postedByID);
+				String postDate = jedis.hget("POST_ALL:" + i, "createddate");
+				String imagelocation = jedis.hget("POST_ALL:" + i,
+						"imagelocation");
+				/*
+				 * postInfo = null;
+				 */System.out.println("postedBy" + postedByID);
 				System.out.println("postText" + postText);
-				postInfoMap=new HashMap<String,String>();
-				
-				  postInfoMap.put("username",postedByID); 
-				  postInfoMap.put("postdate","no Date");/*Date is to be send to proper format*/
-				  postInfoMap.put("postText",postText);
-				  postInfoMap.put("StotalLikes",StotalLikes);
-				  
-/*				postInfo = postedByID + "/" + postDate + "/" + postText;
-*/				/*
-				 * jsonObject.put("postedBy",postedByID);
-				 * jsonObject.put("postedDate", postDate);
-				 * jsonObject.put("postedText",postText);
-				 */
+				postInfoMap = new HashMap<String, String>();
+
+				postInfoMap.put("username", postedByID);
+				postInfoMap.put("postdate", postDate);/*
+													 * Date is to be send to
+													 * proper format
+													 */
+				postInfoMap.put("imagelocation", imagelocation);
+				postInfoMap.put("postText", postText);
+				postInfoMap.put("StotalLikes", StotalLikes);
+
+				/*
+				 * postInfo = postedByID + "/" + postDate + "/" + postText;
+				 *//*
+					 * jsonObject.put("postedBy",postedByID);
+					 * jsonObject.put("postedDate", postDate);
+					 * jsonObject.put("postedText",postText);
+					 */
 
 				postMap.put(i, postInfoMap);
 				System.out.println("#########################Map this time is"
@@ -127,13 +142,34 @@ public class HomeController {
 				cLightsList.add(text);
 			}
 		}
-		
+
 		modelAndView.addObject("cLightsList", cLightsList);
 
 		/* Get News */
-		Map<String,String> newsMap=jedis.hgetAll("NEWS_ALL");
+		Map<String, String> newsMap = jedis.hgetAll("NEWS_ALL");
 		modelAndView.addObject("newsMap", newsMap);
 		
+		//Survey
+		Map<String,String> surveyQuestionMap=jedis.hgetAll("QUESTION_ALL");
+		Map<String,String> questionInfoMap=new HashMap<String,String>();
+		Iterator<Map.Entry<String, String>> entries = surveyQuestionMap.entrySet().iterator();
+		int tcount=0;
+		while (entries.hasNext()) {
+		  Map.Entry<String, String> entry = entries.next();
+		  String qkey = entry.getKey();
+		  String qvalue = entry.getValue();
+		  boolean inSupport=jedis.sismember("SUPPORT_ALL:"+qkey, username);
+		  boolean inAgainst=jedis.sismember("AGAINST_ALL:"+qkey, username);
+		  if((!(inSupport || inAgainst))&&(tcount<2)){
+			  questionInfoMap.put(qkey, qvalue);
+			  tcount++;
+		  }
+		  if(tcount==2){break;}
+		 
+		}
+		modelAndView.addObject("questionInfoMap", questionInfoMap);
+
+		modelAndView.addObject("imagePath", imagePath);
 		return modelAndView;
 	}
 
@@ -213,28 +249,33 @@ public class HomeController {
 	}
 
 	@RequestMapping(value = "/otherprofilenotf.html", method = RequestMethod.GET)
-	public ModelAndView openotherprofilenotfPage(@RequestParam("username") String username,HttpServletRequest request) {
-		Map<String,String> userProp=new HashMap<String, String>();
-		System.out.println("******************Username for Profile page is********************"+username);
+	public ModelAndView openotherprofilenotfPage(
+			@RequestParam("username") String username,
+			HttpServletRequest request) {
+		Map<String, String> userProp = new HashMap<String, String>();
+		System.out
+				.println("******************Username for Profile page is********************"
+						+ username);
 		Jedis jedis = JedisFactory.getInstance().getJedisPool().getResource();
-        Map<String,String> userInfo=jedis.hgetAll("USER_ALL:"+username);
-        Set<String> friendList=jedis.smembers("FRIENDSET:"+username);
-        HttpSession session = request.getSession();
+		Map<String, String> userInfo = jedis.hgetAll("USER_ALL:" + username);
+		Set<String> friendList = jedis.smembers("FRIENDSET:" + username);
+		HttpSession session = request.getSession();
 		String loggedInUser = (String) session.getAttribute("username");
-		boolean isUserFriend=friendList.contains(loggedInUser);
-        String isUserFriendString=""+isUserFriend;
-		
+		boolean isUserFriend = friendList.contains(loggedInUser);
+		String isUserFriendString = "" + isUserFriend;
+
 		userProp.put("username", username);
-		userProp.put("name", userInfo.get("firstName")+" "+userInfo.get("lastName"));
+		userProp.put("name",
+				userInfo.get("firstName") + " " + userInfo.get("lastName"));
 		userProp.put("mailId", userInfo.get("mailid"));
 		userProp.put("currentCity", userInfo.get("currentCity"));
 		userProp.put("isFriend", isUserFriendString);
-		
+
 		/*
 		 * return new
 		 * ModelAndView("otherprofilenotf","mdList",test.getUserInfo());
 		 */
-		return new ModelAndView("otherprofilenotf","userProp",userProp);
+		return new ModelAndView("otherprofilenotf", "userProp", userProp);
 	}
 
 	@RequestMapping(value = "/postS.html", method = RequestMethod.GET)
@@ -255,9 +296,11 @@ public class HomeController {
 		return "ourprofile";
 	}
 
-	@RequestMapping(value = "/postsomething.html", method = RequestMethod.GET)
+	@RequestMapping(value = "/postsomething.html", method = RequestMethod.POST)
 	public String setPost(@ModelAttribute("posts") Posts posts,
-			BindingResult bindingResult, HttpServletRequest request) {
+			BindingResult bindingResult,
+			@RequestParam CommonsMultipartFile fileUpload,
+			HttpServletRequest request) {
 		Jedis jedis = JedisFactory.getInstance().getJedisPool().getResource();
 		Pipeline pipeline = jedis.pipelined();
 
@@ -280,6 +323,12 @@ public class HomeController {
 			jedis.hmset("CITYLIGHTS_ALL:" + clightsId, postInfo);
 		} else {
 			Long postId = jedis.incr("POST_IDS");
+			if (!fileUpload.isEmpty()) {
+				serviceStd.uploadPostFile(fileUpload, postId);
+				postInfo.put("imagelocation", fileUpload.getOriginalFilename());
+
+			}
+
 			jedis.hmset("POST_ALL:" + postId, postInfo);
 
 		}
@@ -290,98 +339,213 @@ public class HomeController {
 	}
 
 	@RequestMapping(value = "/search.html", method = RequestMethod.GET)
-	public ModelAndView searchMethod(HttpSession httpSession,HttpServletRequest request) {
+	public ModelAndView searchMethod(HttpSession httpSession,
+			HttpServletRequest request) {
 		Jedis jedis = JedisFactory.getInstance().getJedisPool().getResource();
-        
-		
-		String searchText=request.getParameter("searchBox");
-		Set<String> totalkeys=jedis.keys("USER_ALL:*");
-		System.out.println("########Total keys are#######"+totalkeys);
-        int countUsers=totalkeys.size();
-        Map <String,Map<String,String>> userMap=new HashMap<String,Map<String,String>>();
-       /* Map <String,String> userInfo=new HashMap<String, String>();*/
-        
-       /* userInfo.put("name", "Mayank Dwivedi");
-        userInfo.put("work", "JSS");
-        userInfo.put("currentCity","Noida");
-        userInfo.put("hometown", "Kanpur");
-        
-        userMap.put("may", userInfo);
 
-        Map <String,String> userInfo1=new HashMap<String, String>();
-        userInfo1.put("name", "Himanshu Dwivedi");
-        userInfo1.put("work", "Jaypee");
-        userInfo1.put("currentCity","Noida");
-        userInfo1.put("hometown", "Kanpur");
-        
-        userMap.put("him", userInfo1);*/
-        
-        Iterator iterator=totalkeys.iterator();
-        while(iterator.hasNext()){
-        	String usernameKey=(String) iterator.next();
-        	 Map <String,String> userInfo=new HashMap<String, String>();
-        	Map<String, String> userDbMap=jedis.hgetAll(usernameKey);
-        	String[] userKeyArray=usernameKey.split(":");
-        	String name=userDbMap.get("firstName")+" "+userDbMap.get("lastName");
-        	
-        	if(name.contains(searchText)){
-        		userInfo.put("name",name);
-        		userInfo.put("work","null");
-        		userInfo.put("currentCity", userDbMap.get("currentCity"));
-        		userInfo.put("hometown", "null");
-        		userMap.put(userKeyArray[1], userInfo);
-        	}
-        }
-        	
-        
-        System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^ Map value is"+userMap);
-        
-		return new ModelAndView("search","userMap",userMap);
+		String searchText = request.getParameter("searchBox");
+		Set<String> totalkeys = jedis.keys("USER_ALL:*");
+		System.out.println("########Total keys are#######" + totalkeys);
+		int countUsers = totalkeys.size();
+		Map<String, Map<String, String>> userMap = new HashMap<String, Map<String, String>>();
+		/* Map <String,String> userInfo=new HashMap<String, String>(); */
+
+		/*
+		 * userInfo.put("name", "Mayank Dwivedi"); userInfo.put("work", "JSS");
+		 * userInfo.put("currentCity","Noida"); userInfo.put("hometown",
+		 * "Kanpur");
+		 * 
+		 * userMap.put("may", userInfo);
+		 * 
+		 * Map <String,String> userInfo1=new HashMap<String, String>();
+		 * userInfo1.put("name", "Himanshu Dwivedi"); userInfo1.put("work",
+		 * "Jaypee"); userInfo1.put("currentCity","Noida");
+		 * userInfo1.put("hometown", "Kanpur");
+		 * 
+		 * userMap.put("him", userInfo1);
+		 */
+
+		Iterator iterator = totalkeys.iterator();
+		while (iterator.hasNext()) {
+			String usernameKey = (String) iterator.next();
+			Map<String, String> userInfo = new HashMap<String, String>();
+			Map<String, String> userDbMap = jedis.hgetAll(usernameKey);
+			String[] userKeyArray = usernameKey.split(":");
+			String name = userDbMap.get("firstName") + " "
+					+ userDbMap.get("lastName");
+
+			if (name.contains(searchText)) {
+				userInfo.put("name", name);
+				userInfo.put("work", "null");
+				userInfo.put("currentCity", userDbMap.get("currentCity"));
+				userInfo.put("hometown", "null");
+				userMap.put(userKeyArray[1], userInfo);
+			}
+		}
+
+		System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^ Map value is" + userMap);
+
+		return new ModelAndView("search", "userMap", userMap);
+	}
+
+	@RequestMapping("/ajax")
+	public ModelAndView helloAjaxTest() {
+		return new ModelAndView("ajax", "message",
+				"Crunchify Spring MVC with Ajax and JQuery Demo..");
+	}
+
+	@RequestMapping(value = "/ajaxtest", method = RequestMethod.GET)
+	public @ResponseBody
+	String getTime(@RequestParam(value = "postId") String postId,
+			HttpServletRequest request) {
+
+		System.out
+				.println("######################Post Id is##################### "
+						+ postId);
+		HttpSession session = request.getSession();
+		String postedBy = (String) session.getAttribute("username");
+
+		Jedis jedis = JedisFactory.getInstance().getJedisPool().getResource();
+		Pipeline pipeline = jedis.pipelined();
+		String result = "";
+		/*
+		 * Set<String> totalkeys=jedis.keys("USER_ALL:*");
+		 * result=result+(totalkeys.size());
+		 */
+		boolean hasLiked = jedis.sismember("LIKE_POST:" + postId, postedBy);
+		if (!hasLiked) {
+			jedis.sadd("LIKE_POST:" + postId, postedBy);
+		} else {
+			jedis.srem("LIKE_POST:" + postId, postedBy);
+
+		}
+		Set<String> likedBy = jedis.smembers("LIKE_POST:" + postId);
+		int totalLikes = likedBy.size();
+		pipeline.sync();
+		result = result + totalLikes;
+
+		logger.debug("Debug Message from CrunchifySpringAjaxJQuery Controller..");
+		return result;
 	}
 
 	
-	@RequestMapping("/ajax")
-    public ModelAndView helloAjaxTest() {
-        return new ModelAndView("ajax", "message", "Crunchify Spring MVC with Ajax and JQuery Demo..");
-    }
- 
-    @RequestMapping(value = "/ajaxtest", method = RequestMethod.GET)
-    public @ResponseBody
-    String getTime(@RequestParam(value = "postId") String postId,HttpServletRequest request) {
- 
-    	System.out.println("######################Post Id is##################### "+postId);
-    	HttpSession session = request.getSession();
-		String postedBy = (String) session.getAttribute("username");
-
 		
-    	
+	// For setting fire debate answers
+	@RequestMapping(value = "/setdebateanswers", method = RequestMethod.GET)
+	public @ResponseBody
+	String getDebqteQuestion(@RequestParam(value = "answer") String answer,@RequestParam(value = "qno") String qno,HttpServletRequest request) {
+		logger.debug("Inside answer set method*************");
+		HttpSession session = request.getSession();
+		String username = (String) session.getAttribute("username");
+		
 		Jedis jedis = JedisFactory.getInstance().getJedisPool().getResource();
-		Pipeline pipeline = jedis.pipelined();
-		String result="";
-		/*Set<String> totalkeys=jedis.keys("USER_ALL:*");
-        result=result+(totalkeys.size());*/
-		boolean hasLiked= jedis.sismember("LIKE_POST:"+postId, postedBy);
-		if(!hasLiked){
-		jedis.sadd("LIKE_POST:"+postId, postedBy);}
-		else{
-			jedis.srem("LIKE_POST:"+postId, postedBy);
-
-		}
-		Set<String> likedBy=jedis.smembers("LIKE_POST:"+postId);
-		int totalLikes=likedBy.size();
-		pipeline.sync();
-		result=result+totalLikes;
 		
+			if(answer.equals("support")){
+				jedis.sadd("SUPPORT_ALL:"+qno, username);
+			}else{
+				jedis.sadd("AGAINST_ALL:"+qno, username);
+			}
+		long supportSize=jedis.smembers("SUPPORT_ALL:"+qno).size();
+		long againstSize=jedis.smembers("AGAINST_ALL:"+qno).size();
 
-       logger.debug("Debug Message from CrunchifySpringAjaxJQuery Controller..");
-        return result;
-    }
-    
-//  For uploading File
-    @RequestMapping(value = "/fileUpload.html", method = RequestMethod.POST)
-	public String fileUpload() {
-    	serviceStd.uploadFile();
-//    return "ourprofile";
-    	return "redirect:home.html";
-    }
+		int supportPercent= (int) ((supportSize*100)/(supportSize+againstSize));
+		int againstPercent= (int) ((againstSize*100)/(supportSize+againstSize));
+
+/*		String voteString="<div style="+"width:"+supportPercent+"px; background-color:#da4f49"+">"+supportPercent+"%</div><div style="+"width:"+againstPercent+"px;   background-color: steelblue;"+">"+againstPercent+"%</div>;";
+*/
+		
+		String voteString="<div style=\"width:"+supportPercent+"px; background-color:#da4f49\""+">"+supportPercent+"%</div><div style=\"width:"+againstPercent+"px;   background-color: steelblue;\""+">"+againstPercent+"%</div>";
+		System.out.println("$$$$$$$$$$$$$ Vote String is"+voteString);
+		return voteString;
+	}
+	
+	@RequestMapping(value = "/ajaxtesttwo", method = RequestMethod.GET)
+	public @ResponseBody
+	String testAjax(@RequestParam(value = "postId") String postId){
+		System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% "+postId);
+		return "abcd";
+	}
+	
+	
+	
+	// For uploading File
+	@RequestMapping(value = "/fileUpload.html", method = RequestMethod.POST)
+	public String fileUpload(@RequestParam CommonsMultipartFile fileUpload,
+			HttpServletRequest request) {
+		/*
+		 * String multipartFile = fileUpload.getOriginalFilename();
+		 * System.out.println
+		 * ("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^File name is"+multipartFile);
+		 */
+
+		HttpSession session = request.getSession();
+		String username = (String) session.getAttribute("username");
+
+		serviceStd.uploadFile(fileUpload, username);
+		// return "ourprofile";
+		return "redirect:pictures.html";
+	}
+
+	// Test method for file upload
+
+	@RequestMapping(value = "/uploadFile", method = RequestMethod.POST)
+	public @ResponseBody
+	String uploadFileHandler(@RequestParam("name") String name,
+			@RequestParam("file") MultipartFile file) {
+
+		if (!file.isEmpty()) {
+			try {
+				byte[] bytes = file.getBytes();
+
+				// Creating the directory to store file
+				String rootPath = System.getProperty("catalina.home");
+				File dir = new File(rootPath + File.separator + "tmpFiles");
+				if (!dir.exists())
+					dir.mkdirs();
+
+				// Create the file on server
+				File serverFile = new File(dir.getAbsolutePath()
+						+ File.separator + name);
+				BufferedOutputStream stream = new BufferedOutputStream(
+						new FileOutputStream(serverFile));
+				stream.write(bytes);
+				stream.close();
+
+				logger.info("Server File Location="
+						+ serverFile.getAbsolutePath());
+
+				return "You successfully uploaded file=" + name;
+			} catch (Exception e) {
+				return "You failed to upload " + name + " => " + e.getMessage();
+			}
+		} else {
+			return "You failed to upload " + name
+					+ " because the file was empty.";
+		}
+	}
+
+	@RequestMapping(value = "/pictures", method = RequestMethod.GET)
+	public ModelAndView getImages(HttpServletRequest request) {
+		Jedis jedis = JedisFactory.getInstance().getJedisPool().getResource();
+
+		HttpSession session = request.getSession();
+		String username = (String) session.getAttribute("username");
+
+		ModelAndView modelAndView = new ModelAndView("pictures");
+
+		String imagePath = "http://mayrit.herobo.com/images/" + username + "/";
+		Set<String> imagesName = jedis.smembers("IMAGE_ALL:" + username);
+
+		modelAndView.addObject("imagePath", imagePath);
+		modelAndView.addObject("imagesName", imagesName);
+
+		return modelAndView;
+
+	}
+
+	@RequestMapping(value = "/pophover", method = RequestMethod.GET)
+	public String openPopHover(HttpServletRequest request) {
+		return "pophover";
+	}
+
 }

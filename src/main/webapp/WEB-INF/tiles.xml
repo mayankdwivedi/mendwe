@@ -48,5 +48,14 @@
 		<put-attribute name="body" value="/WEB-INF/view/ajax.jsp" />
 	</definition>
 	
+	<definition name="pictures" extends="base.definition">
+		<put-attribute name="body" value="/WEB-INF/view/pictures.jsp" />
+	</definition>
+	
+	<definition name="pophover" extends="base.definition">
+		<put-attribute name="body" value="/WEB-INF/view/pophover.jsp" />
+	</definition>
+	
+	
 	
  </tiles-definitions>      

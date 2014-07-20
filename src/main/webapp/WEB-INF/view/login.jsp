@@ -13,7 +13,7 @@
   <input type="text" style="width:480px; height:40px; font-size:20px;" placeholder="Username" name="username" /><br/>
   <input type="password" style="width:480px; height:40px; font-size:20px;" placeholder="Password" name="password" /><br/>
   <input type="text" style="width:480px; height:40px; font-size:20px;" placeholder="MailId" name="mailId" /><br/>
-  <input type="text" style="width:480px; height:40px; font-size:20px;" placeholder="City" name="currentAddress" /><br/>
+  <input type="text" style="width:480px; height:40px; font-size:20px;" placeholder="Current City" name="currentAddress" /><br/>
   <br/>
   <button type="submit" class="mbutton">Create Account</button>
 </form>

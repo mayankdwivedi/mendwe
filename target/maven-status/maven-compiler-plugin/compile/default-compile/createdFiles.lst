@@ -3,12 +3,14 @@ com\mendwe\utility\GetURLContent.class
 com\mendwe\enumerations\Religion.class
 com\mendwe\DAO\MendWeDAOImpl.class
 com\mendwe\model\User.class
+com\mendwe\model\UploadedFile.class
 com\mendwe\utility\SessionFactoryUtility.class
 com\mendwe\enumerations\VegNonVeg.class
-FileUploadHandler.class
+com\mendwe\service\MendWeServiceStd.class
 com\mendwe\controller\LoginController.class
 com\mendwe\interceptor\UserAuthenticationInterceptor.class
 com\mendwe\enumerations\Relationship.class
+com\mendwe\service\MendWeServiceImpl.class
 com\mendwe\enumerations\Sex.class
 com\mendwe\DAO\MendWeDAOStd.class
 com\mendwe\controller\HomeController.class

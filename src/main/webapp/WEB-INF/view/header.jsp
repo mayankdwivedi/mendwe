@@ -1,21 +1,12 @@
 <%@taglib prefix="c" uri="http://java.sun.com/jstl/core_rt"%>
 <div class="nheader">
 
-	<div class="span2 visible-desktop">
+	<div class="span2">
 		<font style="font-size: 20px;">me n we</font>
 	</div>
 
-<div class="span12 visible-phone">
-<font style="font-size: 20px;">me n we</font>
-	<a href="<c:url value="/home.html"/>" class="offset1" title="Home"
-			style="#"><i class="icon-home icon-white"></i></a>&nbsp; <a href=""
-			title="My Profile"><i class="icon-user icon-white"></i></a>&nbsp; <a
-			href="#" title="Settings"><i class="icon-wrench icon-white"></i></a>&nbsp;
-		<a href="<c:url value="/logout.html"/>" title="Log-Out"><i
-			class="icon-off icon-white"></i></a>
-</div>
 
-	<div class="span5 visible-desktop">
+	<div class="span5">
 		<form action="search.html">
 			<input type="search" name="searchBox" placeholder="Search"
 				style="float: left; position: relative; width: 80%; height: 15px; border-radius: 4px 0px 0px 4px;">
@@ -28,12 +19,12 @@
 
 
 
-	<div class="span2 visible-desktop">
+	<div class="span2">
 		<img src="<c:url value="/resources/images/images11.jpg"/>"
 			class=" profile-img-circle"> <font style="font-size: 17px;"><%=session.getAttribute("username")%></font>
 	</div>
 
-	<div class="span3 visible-desktop">
+	<div class="span3">
 		<a href="<c:url value="/home.html"/>" class="offset1" title="Home"
 			style="#"><i class="icon-home icon-white"></i></a>&nbsp; <a href=""
 			title="My Profile"><i class="icon-user icon-white"></i></a>&nbsp; <a

@@ -7,6 +7,16 @@
  *
  * Designed and built with all the love in the world @twitter by @mdo and @fat.
  */
+ 
+ .picturebox{
+ width:110px;
+ height:110px;
+ float:left;
+ margin:5px;
+ padding:4px;
+ border-radius:4px;
+ border:2px solid gray;
+ }
  .wrapper {
 min-height: 100%;
 height: auto !important;
@@ -37,10 +47,17 @@ margin: 0 auto -4em;
    min-height: 50px;
 }
 
- .activityBox{
+ .citylightsActivityBox{
  position:relative;
  width:97%;
  height:150px;
+ text-align: justify;
+/*  border:1px solid gray;
+ */ }
+ 
+ .voteActivityBox{
+ position:relative;
+ width:97%;
  text-align: justify;
 /*  border:1px solid gray;
  */ }
@@ -51,6 +68,7 @@ margin: 0 auto -4em;
    margin-bottom: 4px;
    padding:4px;
    font-size: 12px;
+   line-height:17px;
  }
 
 .imgPostBox{
@@ -72,6 +90,7 @@ margin: 0 auto -4em;
    font-size:14px;
    text-align: justify;
    min-height: 50px;
+   line-height:22px;
 }
 
 .insidepost{

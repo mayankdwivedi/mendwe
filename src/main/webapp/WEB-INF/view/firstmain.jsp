@@ -2,9 +2,10 @@
 
 	<div class="span8">
 		firstmain&nbsp; <a href="" title="Chat"><i class="icon-comment"></i></a>&nbsp;
-		 <a href="" title="Time Spent"><i class="icon-time"></i></a>&nbsp; <a
+		<a href="" title="Dedicate"><i class="icon-road"></i></a>&nbsp; <a
+			href="" title="Image Upload"><i class="icon-camera"></i></a>&nbsp; <a
+			href="" title="Time Spent"><i class="icon-time"></i></a>&nbsp; <a
 			href="" title="My Locality"><i class="icon-retweet"></i></a>
-			
 	</div>
 
 	<!-- <div class="span6"> </div> -->
