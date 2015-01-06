@@ -1,6 +1,7 @@
 com\mendwe\utility\JedisFactory.class
 com\mendwe\utility\GetURLContent.class
 com\mendwe\enumerations\Religion.class
+com\mendwe\model\Story.class
 com\mendwe\DAO\MendWeDAOImpl.class
 com\mendwe\model\User.class
 com\mendwe\model\UploadedFile.class

@@ -56,6 +56,16 @@
 		<put-attribute name="body" value="/WEB-INF/view/pophover.jsp" />
 	</definition>
 	
+	<definition name="addstory" extends="base.definition">
+		<put-attribute name="body" value="/WEB-INF/view/addstory.jsp" />
+	</definition>
 	
+	<definition name="storypane" extends="base.definition">
+		<put-attribute name="body" value="/WEB-INF/view/storypane.jsp" />
+	</definition>
+	
+	<definition name="story" extends="base.definition">
+		<put-attribute name="body" value="/WEB-INF/view/story.jsp" />
+	</definition>
 	
  </tiles-definitions>      

@@ -4,6 +4,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,6 +35,7 @@ import redis.clients.jedis.Pipeline;
 import com.mendwe.DAO.MendWeDAOStd;
 import com.mendwe.DAO.UserTest;
 import com.mendwe.model.Posts;
+import com.mendwe.model.Story;
 import com.mendwe.service.MendWeServiceImpl;
 import com.mendwe.service.MendWeServiceStd;
 import com.mendwe.utility.JedisFactory;
@@ -547,5 +549,114 @@ public class HomeController {
 	public String openPopHover(HttpServletRequest request) {
 		return "pophover";
 	}
+	
+	@RequestMapping(value = "/addstory", method = RequestMethod.GET)
+	public String addStory() {
+		return "addstory";
+	}
+	
+	
+	@RequestMapping(value = "/submitStory", method = RequestMethod.POST)
+	public ModelAndView submitStory(@ModelAttribute("story") Story story,HttpServletRequest request) {
+		
+		HttpSession session = request.getSession();
+		String loggedInUser=(String) session.getAttribute("username");
+		Jedis jedis = JedisFactory.getInstance().getJedisPool().getResource();
 
+		String title=story.getTitle();
+		String shortDescription=story.getShortDescription();
+		String longDescription=story.getLongDescription();
+		String points=story.getPoints();
+		String createdBy=loggedInUser;
+		Date date=new Date();
+		String createdDate=date.toString();
+		
+		logger.debug(title+"#"+shortDescription+"#"+longDescription+"#"+points+"#"+createdBy+"#"+createdDate);
+		
+		Map<String,String> newStoryMap=new HashMap<String,String>();
+		newStoryMap.put("title", title);
+		newStoryMap.put("shortDescription", shortDescription);
+		newStoryMap.put("longDescription",longDescription);
+		newStoryMap.put("points",points);
+		newStoryMap.put("createdDate", createdDate);
+		newStoryMap.put("createdBy",createdBy);
+		
+		/*Long storyID=jedis.incr("STORY_IDS");
+		jedis.hmset("STORY_ALL:"+storyID, newStoryMap);
+		*/
+		// Story Pane work
+
+		// Map of stories where stories are in themselves map, so its Map of Map
+		Map<Long,Map<String,String>> allStories=new HashMap<Long,Map<String,String>>();
+		
+		String STORY_IDS=jedis.get("STORY_IDS");
+		
+		for(Long i=(long) 1;i<6;i++){
+			// check whether posted by is in friendlist of logged in user and logged in user is not in STORY_READ map
+			
+			boolean hasRead=jedis.sismember("STORY_READ:"+i, createdBy);
+			Map<String,String> eachStory=jedis.hgetAll("STORY_ALL:"+i);
+			
+			String storyWriter=eachStory.get("createdBy");
+			
+			boolean inFriendList=jedis.sismember("FRIEND_SET:"+loggedInUser, storyWriter);
+
+			if((!hasRead)&&(inFriendList)){
+				
+				allStories.put(i, eachStory);
+				
+			}
+			
+			
+			
+		}
+		ModelAndView modelAndView=new ModelAndView("storypane");
+		modelAndView.addObject("allStoriesMap", allStories);
+		
+		// in front end we have to show only the title, short description, posted by and points.
+		
+		return modelAndView;
+	}
+	
+	@RequestMapping(value = "/fullstory", method = RequestMethod.GET)
+	public ModelAndView fullstory(@RequestParam("storyID") String storyID,final RedirectAttributes redirectAttributes,HttpServletRequest request) {
+		Jedis jedis = JedisFactory.getInstance().getJedisPool().getResource();
+
+		HttpSession session = request.getSession();
+		String loggedInUser=(String) session.getAttribute("username");
+		
+		String loggedInUserPoints=jedis.hget("USER_ALL:"+loggedInUser,"points");
+        
+		
+		Map<String,String> storyInfo=jedis.hgetAll("STORY_ALL:"+storyID);
+		ModelAndView modelAndView=new ModelAndView("story");
+		
+		
+		if((Integer.parseInt(storyInfo.get("points"))>(Integer.parseInt(loggedInUserPoints)))){
+/*			redirectAttributes.addFlashAttribute("message", "u do not have points ask from your friends");
+*/
+			modelAndView.addObject("message", "u do not have points ask from your friends");
+			
+			// put flash message -->u do not have points ask from your friends and friend list who are having points are shown
+		}else{
+
+		// 
+			jedis.sadd("STORY_READ:"+storyID, loggedInUser);
+		
+		String postedBy=storyInfo.get("createdBy");
+		String postedByPoints=jedis.hget("USER_ALL:"+postedBy,"points");
+		
+		int postedByPointsInt=Integer.parseInt(postedByPoints)+Integer.parseInt(storyInfo.get("points"));
+		int loggedInUserPointsInt=Integer.parseInt(loggedInUserPoints)-Integer.parseInt(storyInfo.get("points"));
+		
+		jedis.hset("USER_ALL:"+postedBy,"points",Integer.toString(postedByPointsInt));
+		jedis.hset("USER_ALL:"+loggedInUser,"points",Integer.toString(loggedInUserPointsInt));
+		// method will return model with map of story that will be displayed
+		modelAndView.addObject("storyInfo", storyInfo);
+		}
+		
+		
+		return modelAndView;
+	}
+	
 }
